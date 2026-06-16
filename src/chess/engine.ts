@@ -1,5 +1,5 @@
 import { getPieceType, isWhitePiece } from './board';
-import { DEEP_EXT_PLIES, MAX_KILLER_MOVES, MAX_PLY } from './constants';
+import { MAX_KILLER_MOVES, MAX_PLY } from './constants';
 import { evaluateBoard, getMVVLVAScore, isCaptureMove } from './evaluation';
 import { computeHash } from './hashing';
 import { simulateMove } from './moves';
@@ -11,6 +11,7 @@ export interface FindBestMoveOptions {
   enPassantTarget: Square | null;
   searchDepth: number;
   allowDeepSearch: boolean;
+  deepSearchPlies: number;
 }
 
 export interface FindBestMoveResult {
@@ -169,6 +170,7 @@ const minimax = (
   castlingRights: CastlingRights,
   enPassantTarget: Square | null,
   allowDeepSearch: boolean,
+  deepSearchPlies: number,
   engineState: EngineState,
   ply = 0,
   allowNullMove = true
@@ -192,7 +194,7 @@ const minimax = (
     const basicEval = evaluateBoard(board);
     if (!allowDeepSearch) return basicEval;
 
-    const deepEval = deepExtension(board, alpha, beta, maximizingPlayer, castlingRights, enPassantTarget, DEEP_EXT_PLIES, engineState);
+    const deepEval = deepExtension(board, alpha, beta, maximizingPlayer, castlingRights, enPassantTarget, deepSearchPlies, engineState);
     let finalEval;
     let usedDeep = false;
 
@@ -224,6 +226,7 @@ const minimax = (
       castlingRights,
       enPassantTarget,
       allowDeepSearch,
+      deepSearchPlies,
       engineState,
       ply + 1,
       false
@@ -246,7 +249,7 @@ const minimax = (
     let maxEval = -Infinity;
     for (const move of moves) {
       const { newBoard, newCastlingRights, newEnPassant } = simulateMove(board, move.from, move.to, castlingRights);
-      const evaluation = minimax(newBoard, depth - 1, alpha, beta, false, newCastlingRights, newEnPassant, allowDeepSearch, engineState, ply + 1, true);
+      const evaluation = minimax(newBoard, depth - 1, alpha, beta, false, newCastlingRights, newEnPassant, allowDeepSearch, deepSearchPlies, engineState, ply + 1, true);
       if (evaluation > maxEval) {
         maxEval = evaluation;
         bestMoveLocal = move;
@@ -269,7 +272,7 @@ const minimax = (
   let minEval = Infinity;
   for (const move of moves) {
     const { newBoard, newCastlingRights, newEnPassant } = simulateMove(board, move.from, move.to, castlingRights);
-    const evaluation = minimax(newBoard, depth - 1, alpha, beta, true, newCastlingRights, newEnPassant, allowDeepSearch, engineState, ply + 1, true);
+    const evaluation = minimax(newBoard, depth - 1, alpha, beta, true, newCastlingRights, newEnPassant, allowDeepSearch, deepSearchPlies, engineState, ply + 1, true);
     if (evaluation < minEval) {
       minEval = evaluation;
       bestMoveLocal = move;
@@ -323,6 +326,7 @@ export const findBestMove = (
         newCastlingRights,
         newEnPassant,
         options.allowDeepSearch,
+        options.deepSearchPlies,
         engineState,
         1,
         true

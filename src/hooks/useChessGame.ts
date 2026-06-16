@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getInitialBoard, isWhitePiece } from '../chess/board';
-import { INITIAL_CASTLING_RIGHTS } from '../chess/constants';
+import { DEEP_EXT_PLIES, INITIAL_CASTLING_RIGHTS } from '../chess/constants';
 import { findBestMove } from '../chess/engine';
 import { createEngineState, resetEngineForNewGame } from '../chess/hashing';
 import { applyMoveToBoard, makeMoveNotation } from '../chess/moves';
@@ -42,12 +42,22 @@ export const useChessGame = () => {
   const [enPassantTarget, setEnPassantTarget] = useState<Square | null>(null);
   const [searchDepth, setSearchDepth] = useState(3);
   const [allowDeepSearch, setAllowDeepSearch] = useState(false);
+  const [deepSearchPlies, setDeepSearchPlies] = useState(DEEP_EXT_PLIES);
   const [showEnginePanel, setShowEnginePanel] = useState(true);
   const [engineInfo, setEngineInfo] = useState<EngineInfo>(createInitialEngineInfo());
   const engineStateRef = useRef<EngineState | null>(null);
+  const searchSettingsRef = useRef({ searchDepth, allowDeepSearch, deepSearchPlies });
   if (!engineStateRef.current) {
     engineStateRef.current = createEngineState();
   }
+
+  useEffect(() => {
+    searchSettingsRef.current = { searchDepth, allowDeepSearch, deepSearchPlies };
+  }, [searchDepth, allowDeepSearch, deepSearchPlies]);
+
+  useEffect(() => {
+    engineStateRef.current!.tt.clear();
+  }, [allowDeepSearch, deepSearchPlies]);
 
   const makeMove = (currentBoard: Board, from: Square, to: MoveTarget, updateState = true): Board => {
     const result = applyMoveToBoard(currentBoard, from, to, castlingRights);
@@ -108,9 +118,10 @@ export const useChessGame = () => {
       setIsThinking(true);
 
       const timeoutId = setTimeout(() => {
+        const currentSearchSettings = searchSettingsRef.current;
         const { bestMove, engineInfo: nextEngineInfo } = findBestMove(
           board,
-          { castlingRights, enPassantTarget, searchDepth, allowDeepSearch },
+          { castlingRights, enPassantTarget, ...currentSearchSettings },
           engineStateRef.current!
         );
 
@@ -165,10 +176,12 @@ export const useChessGame = () => {
     castlingRights,
     searchDepth,
     allowDeepSearch,
+    deepSearchPlies,
     showEnginePanel,
     engineInfo,
     setSearchDepth,
     setAllowDeepSearch,
+    setDeepSearchPlies,
     setShowEnginePanel,
     resetGame,
     handleSquareClick

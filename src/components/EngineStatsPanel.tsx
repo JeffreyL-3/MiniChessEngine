@@ -17,7 +17,7 @@ const EngineStatsPanel = ({ engineInfo, onHide }: EngineStatsPanelProps) => (
       <div className="flex justify-between">
         <span className="text-gray-600">Search Type:</span>
         <span className={`font-semibold px-2 py-0.5 rounded text-xs ${engineInfo.usedDeepSearch ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-          {engineInfo.usedDeepSearch ? 'Deep Extension' : 'Basic'}
+          {engineInfo.usedDeepSearch ? 'Deep' : 'Basic'}
         </span>
       </div>
       <div className="flex justify-between">
