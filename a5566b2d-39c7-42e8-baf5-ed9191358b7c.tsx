@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 
 const ChessGame = () => {
   // SVG Chess Piece Components
@@ -281,6 +281,7 @@ const ChessGame = () => {
   const nodesRef = useRef(0);
   const cutoffsRef = useRef(0);
   const deepSearchUsedRef = useRef(false); // Track if deep search was used for current move
+  const lastSearchTypeRef = useRef('basic');
   const [showEnginePanel, setShowEnginePanel] = useState(true);
   const [engineInfo, setEngineInfo] = useState({
     lastBest: null,
@@ -450,14 +451,12 @@ const ChessGame = () => {
       case 'P': {
         const direction = isWhite ? -1 : 1;
         const startRow = isWhite ? 6 : 1;
-        const promoteRow = isWhite ? 0 : 7;
-
         // Forward move
-        if (!board[row + direction][col]) {
+        if (isValidPosition(row + direction, col) && !board[row + direction][col]) {
           addMove(row + direction, col);
           
           // Double pawn move from starting position
-          if (row === startRow && !board[row + 2 * direction][col]) {
+          if (row === startRow && isValidPosition(row + 2 * direction, col) && !board[row + 2 * direction][col]) {
             addMove(row + 2 * direction, col, 'doublePawn');
           }
         }
@@ -1115,6 +1114,9 @@ const ChessGame = () => {
 
     const t1 = now();
 
+    const usedDeepSearch = deepSearchUsedRef.current;
+    lastSearchTypeRef.current = usedDeepSearch ? 'deep' : 'basic';
+
     // update engine info for UI
     setEngineInfo({
       lastBest: bestValue,
@@ -1125,7 +1127,7 @@ const ChessGame = () => {
       cutoffs: cutoffsRef.current,
       ttEntries: ttRef.current.size,
       timeMs: Math.round(t1 - t0),
-      usedDeepSearch: deepSearchUsedRef.current
+      usedDeepSearch
     });
 
     return bestMove;
@@ -1245,8 +1247,7 @@ const ChessGame = () => {
       
       // Store search type for this move (only for AI moves)
       if (!isWhite) {
-        const searchType = engineInfo.usedDeepSearch ? 'deep' : 'basic';
-        setMoveSearchTypes(prev => [...prev, searchType]);
+        setMoveSearchTypes(prev => [...prev, lastSearchTypeRef.current]);
       } else {
         // For human moves, just mark as 'human'
         setMoveSearchTypes(prev => [...prev, 'human']);
@@ -1294,7 +1295,7 @@ const ChessGame = () => {
     if (!isWhiteTurn && gameStatus === 'playing' && !isThinking) {
       setIsThinking(true);
       
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         const bestMove = findBestMove(board);
         if (bestMove) {
           makeMove(board, bestMove.from, bestMove.to);
@@ -1302,8 +1303,10 @@ const ChessGame = () => {
         }
         setIsThinking(false);
       }, 500);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [isWhiteTurn, gameStatus]);
+  }, [isWhiteTurn, gameStatus, board]);
 
   // Check game status
   useEffect(() => {
@@ -1315,7 +1318,7 @@ const ChessGame = () => {
     } else if (!isWhiteTurn && blackMoves.length === 0) {
       setGameStatus(isInCheck(board, false) ? 'whiteWins' : 'stalemate');
     }
-  }, [board, isWhiteTurn]);
+  }, [board, isWhiteTurn, castlingRights, enPassantTarget]);
 
   // Reset game
   const resetGame = () => {
@@ -1596,7 +1599,7 @@ const ChessGame = () => {
                               {isValidMove && piece && (
                                 <>
                                   <div className="absolute inset-0 bg-red-400 opacity-25" />
-                                  <div className="absolute inset-2 border-3 border-red-500 rounded-sm pointer-events-none" />
+                                  <div className="absolute inset-2 border-2 border-red-500 rounded-sm pointer-events-none" />
                                 </>
                               )}
                             </div>
