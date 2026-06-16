@@ -30,10 +30,58 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: lts/*
-          cache: npm
+
+      - name: Prepare Vite app
+        run: |
+          mkdir -p src
+          cp a5566b2d-39c7-42e8-baf5-ed9191358b7c.tsx src/App.tsx
+          cat > src/main.tsx <<'EOF'
+          import React from 'react';
+          import { createRoot } from 'react-dom/client';
+          import ChessGame from './App';
+
+          createRoot(document.getElementById('root')!).render(
+            <React.StrictMode>
+              <ChessGame />
+            </React.StrictMode>
+          );
+          EOF
+          cat > index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Mini Chess Engine</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="/src/main.tsx"></script>
+            </body>
+          </html>
+          EOF
+          cat > package.json <<'EOF'
+          {
+            "private": true,
+            "type": "module",
+            "scripts": {
+              "build": "vite build --base=./"
+            },
+            "dependencies": {
+              "@vitejs/plugin-react": "latest",
+              "lucide-react": "latest",
+              "react": "latest",
+              "react-dom": "latest",
+              "typescript": "latest",
+              "vite": "latest"
+            },
+            "devDependencies": {}
+          }
+          EOF
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build
         run: npm run build
