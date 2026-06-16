@@ -6,7 +6,6 @@ import ChessBoard from './components/ChessBoard';
 import EngineStatsPanel from './components/EngineStatsPanel';
 import GameStatusPanel from './components/GameStatusPanel';
 import MoveHistoryPanel from './components/MoveHistoryPanel';
-import OptimizationsPanel from './components/OptimizationsPanel';
 import { useChessGame } from './hooks/useChessGame';
 
 const ChessGame = () => {
@@ -17,10 +16,10 @@ const ChessGame = () => {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-white mb-2 drop-shadow-lg">
-            Optimized Chess Engine
+            Mini Chess Engine
           </h1>
           <p className="text-purple-200 text-lg">
-            Enhanced with MVV-LVA, Killer Moves, Iterative Deepening & Null Move Pruning
+            Play a compact chess match against the browser AI
           </p>
         </div>
 
@@ -62,7 +61,6 @@ const ChessGame = () => {
 
           <div className="space-y-4">
             <CapturedPiecesPanel capturedPieces={game.capturedPieces} />
-            <OptimizationsPanel />
           </div>
         </div>
       </div>
