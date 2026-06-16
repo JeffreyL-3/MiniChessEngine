@@ -34,8 +34,10 @@ const ChessGame = () => {
             <AiSettingsPanel
               searchDepth={game.searchDepth}
               allowDeepSearch={game.allowDeepSearch}
+              deepSearchPlies={game.deepSearchPlies}
               onSearchDepthChange={game.setSearchDepth}
               onAllowDeepSearchChange={game.setAllowDeepSearch}
+              onDeepSearchPliesChange={game.setDeepSearchPlies}
             />
             {game.showEnginePanel && (
               <EngineStatsPanel
