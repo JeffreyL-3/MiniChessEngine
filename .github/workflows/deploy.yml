@@ -33,12 +33,10 @@ jobs:
 
       - name: Prepare Vite app
         run: |
-          mkdir -p src
-          cp a5566b2d-39c7-42e8-baf5-ed9191358b7c.tsx src/App.tsx
           cat > src/main.tsx <<'EOF'
           import React from 'react';
           import { createRoot } from 'react-dom/client';
-          import ChessGame from './App';
+          import ChessGame from './ChessGame';
 
           createRoot(document.getElementById('root')!).render(
             <React.StrictMode>
