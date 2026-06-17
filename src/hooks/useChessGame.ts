@@ -41,7 +41,7 @@ export const useChessGame = () => {
   const [castlingRights, setCastlingRights] = useState<CastlingRights>({ ...INITIAL_CASTLING_RIGHTS });
   const [enPassantTarget, setEnPassantTarget] = useState<Square | null>(null);
   const [searchDepth, setSearchDepth] = useState(3);
-  const [allowDeepSearch, setAllowDeepSearch] = useState(false);
+  const [allowDeepSearch, setAllowDeepSearch] = useState(true);
   const [deepSearchPlies, setDeepSearchPlies] = useState(DEEP_EXT_PLIES);
   const [showEnginePanel, setShowEnginePanel] = useState(true);
   const [engineInfo, setEngineInfo] = useState<EngineInfo>(createInitialEngineInfo());
