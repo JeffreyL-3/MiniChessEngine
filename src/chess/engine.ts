@@ -19,6 +19,13 @@ export interface FindBestMoveResult {
   engineInfo: EngineInfo | null;
 }
 
+const MATE_SCORE = 999999;
+
+const terminalScore = (sideToMoveIsWhite: boolean, inCheck: boolean): number => {
+  if (!inCheck) return 0;
+  return sideToMoveIsWhite ? -MATE_SCORE : MATE_SCORE;
+};
+
 const movesEqual = (a: LegalMove | null | undefined, b: LegalMove | null | undefined): boolean => {
   if (!a || !b) return false;
   const [afr, afc] = a.from;
@@ -90,34 +97,54 @@ const deepExtension = (
   castlingRights: CastlingRights,
   enPassantTarget: Square | null,
   remaining: number,
+  ply: number,
   engineState: EngineState
 ): number => {
   engineState.nodes++;
   let alpha = alphaInput;
   let beta = betaInput;
+  const inCheck = isInCheck(board, maximizingPlayer, castlingRights, enPassantTarget);
+  let moves = getAllLegalMoves(board, maximizingPlayer, castlingRights, enPassantTarget);
+
+  if (moves.length === 0) return terminalScore(maximizingPlayer, inCheck);
+
   const standPat = evaluateBoard(board);
 
-  if (maximizingPlayer) {
-    if (standPat >= beta) return standPat;
-    if (standPat > alpha) alpha = standPat;
-  } else {
-    if (standPat <= alpha) return standPat;
-    if (standPat < beta) beta = standPat;
+  if (ply >= MAX_PLY || (remaining <= 0 && !inCheck)) return standPat;
+
+  if (!inCheck) {
+    if (maximizingPlayer) {
+      if (standPat >= beta) return standPat;
+      if (standPat > alpha) alpha = standPat;
+    } else {
+      if (standPat <= alpha) return standPat;
+      if (standPat < beta) beta = standPat;
+    }
+
+    moves = moves.filter(
+      move => isCaptureMove(board, move)
+        || isCheckMove(board, move, maximizingPlayer, castlingRights, enPassantTarget)
+    );
+    if (moves.length === 0) return standPat;
   }
 
-  if (remaining <= 0) return standPat;
-
-  let moves = getAllLegalMoves(board, maximizingPlayer, castlingRights, enPassantTarget)
-    .filter(m => isCaptureMove(board, m) || isCheckMove(board, m, maximizingPlayer, castlingRights, enPassantTarget));
-
-  if (moves.length === 0) return standPat;
   moves = orderMoves(moves, board, null, undefined, engineState);
 
   if (maximizingPlayer) {
-    let value = -Infinity;
+    let value = inCheck ? -Infinity : standPat;
     for (const move of moves) {
       const { newBoard, newCastlingRights, newEnPassant } = simulateMove(board, move.from, move.to, castlingRights);
-      const score = deepExtension(newBoard, alpha, beta, false, newCastlingRights, newEnPassant, remaining - 1, engineState);
+      const score = deepExtension(
+        newBoard,
+        alpha,
+        beta,
+        false,
+        newCastlingRights,
+        newEnPassant,
+        remaining - 1,
+        ply + 1,
+        engineState
+      );
       if (score > value) value = score;
       if (score > alpha) alpha = score;
       if (beta <= alpha) {
@@ -128,10 +155,20 @@ const deepExtension = (
     return value;
   }
 
-  let value = Infinity;
+  let value = inCheck ? Infinity : standPat;
   for (const move of moves) {
     const { newBoard, newCastlingRights, newEnPassant } = simulateMove(board, move.from, move.to, castlingRights);
-    const score = deepExtension(newBoard, alpha, beta, true, newCastlingRights, newEnPassant, remaining - 1, engineState);
+    const score = deepExtension(
+      newBoard,
+      alpha,
+      beta,
+      true,
+      newCastlingRights,
+      newEnPassant,
+      remaining - 1,
+      ply + 1,
+      engineState
+    );
     if (score < value) value = score;
     if (score < beta) beta = score;
     if (beta <= alpha) {
@@ -190,56 +227,70 @@ const minimax = (
     if (alpha >= beta) return ttEntry.value;
   }
 
+  let moves = getAllLegalMoves(board, maximizingPlayer, castlingRights, enPassantTarget);
+  if (moves.length === 0) {
+    const inCheck = isInCheck(board, maximizingPlayer, castlingRights, enPassantTarget);
+    return terminalScore(maximizingPlayer, inCheck);
+  }
+
   if (depth <= 0) {
-    const basicEval = evaluateBoard(board);
-    if (!allowDeepSearch) return basicEval;
+    if (!allowDeepSearch) return evaluateBoard(board);
 
-    const deepEval = deepExtension(board, alpha, beta, maximizingPlayer, castlingRights, enPassantTarget, deepSearchPlies, engineState);
-    let finalEval;
-    let usedDeep = false;
-
-    if (maximizingPlayer) {
-      if (basicEval > deepEval) finalEval = basicEval;
-      else {
-        finalEval = deepEval;
-        usedDeep = true;
-      }
-    } else if (basicEval < deepEval) {
-      finalEval = basicEval;
-    } else {
-      finalEval = deepEval;
-      usedDeep = true;
-    }
-
-    if (usedDeep) engineState.deepSearchUsed = true;
-    return finalEval;
+    engineState.deepSearchUsed = true;
+    return deepExtension(
+      board,
+      alpha,
+      beta,
+      maximizingPlayer,
+      castlingRights,
+      enPassantTarget,
+      deepSearchPlies,
+      ply,
+      engineState
+    );
   }
 
   const R = 2;
-  if (allowNullMove && depth >= R + 1 && canDoNullMove(board, maximizingPlayer, castlingRights, enPassantTarget)) {
-    const nullScore = -minimax(
-      board,
-      depth - R - 1,
-      -beta,
-      -beta + 1,
-      !maximizingPlayer,
-      castlingRights,
-      enPassantTarget,
-      allowDeepSearch,
-      deepSearchPlies,
-      engineState,
-      ply + 1,
-      false
-    );
-    if (nullScore >= beta) return beta;
-  }
-
-  let moves = getAllLegalMoves(board, maximizingPlayer, castlingRights, enPassantTarget);
-  if (moves.length === 0) {
-    if (isInCheck(board, maximizingPlayer, castlingRights, enPassantTarget)) {
-      return maximizingPlayer ? -999999 : 999999;
+  if (
+    allowNullMove
+    && depth >= R + 1
+    && canDoNullMove(board, maximizingPlayer, castlingRights, enPassantTarget)
+  ) {
+    // Scores are always from White's perspective, so null searches use ordinary
+    // max/min windows rather than negamax sign inversion.
+    if (maximizingPlayer && Number.isFinite(beta)) {
+      const nullScore = minimax(
+        board,
+        depth - R - 1,
+        beta - 1,
+        beta,
+        false,
+        castlingRights,
+        null,
+        allowDeepSearch,
+        deepSearchPlies,
+        engineState,
+        ply + 1,
+        false
+      );
+      if (nullScore >= beta) return beta;
+    } else if (!maximizingPlayer && Number.isFinite(alpha)) {
+      const nullScore = minimax(
+        board,
+        depth - R - 1,
+        alpha,
+        alpha + 1,
+        true,
+        castlingRights,
+        null,
+        allowDeepSearch,
+        deepSearchPlies,
+        engineState,
+        ply + 1,
+        false
+      );
+      if (nullScore <= alpha) return alpha;
     }
-    return 0;
   }
 
   moves = orderMoves(moves, board, ttEntry?.bestMove, ply, engineState);

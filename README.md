@@ -30,13 +30,13 @@ The UI uses the word "depth" because that is friendlier for play, but the recurs
 
 ### Deep Search
 
-`Deep Search` is an optional tactical search that runs only at the leaves of the normal search tree. When the normal depth reaches zero, the engine first computes the regular static evaluation. If deep search is enabled, it then continues exploring forcing moves, currently captures and checks, for up to the selected `Deep Plies` value.
+`Deep Search` is an optional tactical search that runs only at the leaves of the normal search tree. When the normal depth reaches zero, the engine continues exploring forcing moves, currently captures and checks, within the selected `Deep Plies` budget. If the side to move is in check, the engine searches every legal evasion instead of using the static evaluation as though that side could pass. A check at the edge of the selected budget is extended until the checked side can legally respond, with `MAX_PLY` as the overall safety limit.
 
 This helps avoid the horizon effect. Without deep search, the engine might stop in the middle of a capture sequence and evaluate an unstable position too early. With deep search enabled, the engine can keep following tactical forcing lines until the position becomes quieter or the deep limit is reached.
 
-Deep search does not make every branch deeper. Quiet moves are not expanded by the deep search. It is a targeted continuation for tactical positions, so it can find sharper moves without multiplying the full search tree as much as raising the main search depth would.
+Deep search does not make every branch deeper. Outside check, quiet moves are not expanded by the deep search; checked positions still include every legal evasion. It is a targeted continuation for tactical positions, so it can find sharper moves without multiplying the full search tree as much as raising the main search depth would.
 
-`Deep Plies` controls the maximum number of extra half-moves deep search may examine after the normal search depth is exhausted. It defaults to `DEEP_EXT_PLIES`, which is currently `16`.
+`Deep Plies` controls the normal forcing-move budget after the main search depth is exhausted. Mandatory check evasions may extend past that budget as described above. The setting defaults to `DEEP_EXT_PLIES`, which is currently `6`.
 
 The engine stats panel reports `Deep` when any part of the last AI search used deep search, including branches that were later discarded. It reports `Basic` when the last search only used the normal search/evaluation path.
 
@@ -54,8 +54,12 @@ The AI search combines several techniques:
 
 The transposition table persists across moves so the engine can reuse calculations from earlier positions in the same game. It is cleared when Deep Search or Deep Plies changes because those settings affect the meaning of cached evaluations.
 
+## Tests
+
+The deployment workflow runs the chess regression suite before building the site. The suite covers mate detection at the normal-search horizon and standard perft baselines for ordinary movement, castling, checks, and en passant-sensitive move generation.
+
 ## Deployment
 
 GitHub Pages deployment is handled by `.github/workflows/deploy.yml`.
 
-The workflow generates a minimal Vite app in CI, imports `src/ChessGame.tsx` from `src/main.tsx`, installs the required React/Vite dependencies, builds with `vite build --base=./`, and deploys `dist`.
+The workflow generates a minimal Vite app in CI, imports `src/ChessGame.tsx` from `src/main.tsx`, installs the required dependencies, runs the chess regression suite, builds with `vite build --base=./`, and deploys `dist`.

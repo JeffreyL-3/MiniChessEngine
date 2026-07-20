@@ -80,7 +80,7 @@ export const PST: Record<string, number[]> = {
 };
 
 export const POS_WEIGHT = 0.5;
-export const DEEP_EXT_PLIES = 16;
+export const DEEP_EXT_PLIES = 6;
 export const MAX_KILLER_MOVES = 2;
 export const MAX_PLY = 64;
 
