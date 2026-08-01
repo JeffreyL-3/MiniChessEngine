@@ -117,18 +117,3 @@ export const simulateMove = (
   const { newBoard, newCastlingRights, newEnPassant } = applyMoveToBoard(board, from, to, castlingRights);
   return { newBoard, newCastlingRights, newEnPassant };
 };
-
-export const makeMoveNotation = (
-  from: Square,
-  toRow: number,
-  toCol: number,
-  special: string | undefined,
-  capturedPiece: string | null
-): string => {
-  const [fromRow, fromCol] = from;
-  let moveNotation = `${String.fromCharCode(97 + fromCol)}${8 - fromRow}-${String.fromCharCode(97 + toCol)}${8 - toRow}`;
-  if (special === 'castleKingside') moveNotation = 'O-O';
-  if (special === 'castleQueenside') moveNotation = 'O-O-O';
-  if (capturedPiece) moveNotation += 'x';
-  return moveNotation;
-};

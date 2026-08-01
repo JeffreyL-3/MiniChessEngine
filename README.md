@@ -14,6 +14,12 @@ The app is split between React UI code and React-free chess logic:
 
 This separation lets the browser UI stay thin: React manages interaction and display, while `src/chess/` decides which moves are legal and which move the AI should play.
 
+## Move Notation
+
+The in-app move history uses Standard Algebraic Notation (SAN). It includes piece letters, captures, legal-move disambiguation, castling, check, checkmate, and promotion, for example `Nf3`, `Qxh7+`, `R1e2`, `O-O`, and `e8=Q#`.
+
+Notation is generated when each move is applied. It uses the position before the move to distinguish identical pieces that can legally reach the same square, and the resulting position to add `+` or `#`. En passant is written as a normal pawn capture, such as `exd6`. The engine currently promotes pawns to queens automatically, so promotion notation currently uses `=Q`.
+
 ## AI Settings
 
 ### Search Depth
@@ -56,7 +62,7 @@ The transposition table persists across moves so the engine can reuse calculatio
 
 ## Tests
 
-The deployment workflow runs the chess regression suite before building the site. The suite covers mate detection at the normal-search horizon and standard perft baselines for ordinary movement, castling, checks, and en passant-sensitive move generation.
+The deployment workflow runs the chess regression suite before building the site. The suite covers mate detection at the normal-search horizon; standard perft baselines for ordinary movement, castling, checks, and en passant-sensitive move generation; and SAN formatting for ordinary moves, captures, disambiguation, castling, en passant, promotion, check, and checkmate.
 
 ## Deployment
 
