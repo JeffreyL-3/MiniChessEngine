@@ -3,7 +3,8 @@ import { getInitialBoard, isWhitePiece } from '../chess/board';
 import { DEEP_EXT_PLIES, INITIAL_CASTLING_RIGHTS } from '../chess/constants';
 import { findBestMove } from '../chess/engine';
 import { createEngineState, resetEngineForNewGame } from '../chess/hashing';
-import { applyMoveToBoard, makeMoveNotation } from '../chess/moves';
+import { applyMoveToBoard } from '../chess/moves';
+import { makeMoveNotation } from '../chess/notation';
 import { getAllLegalMoves, getPieceMoves, isInCheck } from '../chess/rules';
 import type {
   Board,
@@ -75,7 +76,10 @@ export const useChessGame = () => {
 
       setCastlingRights(result.newCastlingRights);
       setEnPassantTarget(result.newEnPassant);
-      setMoveHistory(prev => [...prev, makeMoveNotation(from, result.toRow, result.toCol, result.special, result.capturedPiece)]);
+      setMoveHistory(prev => [
+        ...prev,
+        makeMoveNotation(currentBoard, from, castlingRights, enPassantTarget, result)
+      ]);
       setMoveSearchTypes(prev => [...prev, result.isWhite ? 'human' : engineStateRef.current!.lastSearchType]);
     }
 
